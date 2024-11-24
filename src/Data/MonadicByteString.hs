@@ -1,4 +1,4 @@
-module Data.MonadicByteString(readWords, read16bit, readQName) where
+module Data.MonadicByteString(readWords, read16bit, read32bit, readQName) where
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -7,14 +7,14 @@ import Data.Bits
 import Control.Monad.State
 
 
-readWords::BS.ByteString -> Int -> State Int BS.ByteString 
+readWords::BS.ByteString -> Int -> State Int [Word8] 
 readWords bs n = do
                     offset <- get
                     if offset + 1 >= BS.length bs then error "Nothing More to Read!"
                     else do 
                         let readBytes = BS.take n (BS.drop offset bs)
                         put (offset + BS.length readBytes)
-                        return readBytes
+                        return (BS.unpack readBytes)
 
 
 read16bit::BS.ByteString -> State Int Word16 
@@ -28,6 +28,19 @@ read16bit bs = do
                     put (offset + 2)
                     return val
 
+read32bit::BS.ByteString -> State Int Word32 
+read32bit bs = do
+                offset <- get
+                if offset + 3 >= BS.length bs then error "Can't read 4 bytes"
+                else do
+                    let b1 = fromIntegral (BS.index bs offset) :: Word32 
+                    let b2 = fromIntegral (BS.index bs (offset+1)) :: Word32
+                    let b3 = fromIntegral (BS.index bs (offset+2)) :: Word32  
+                    let b4 = fromIntegral (BS.index bs (offset+3)) :: Word32 
+                    let val = (shiftL b1 24) .|. (shiftL b2 16) .|. (shiftL b3 8) .|. (b4)
+                    put (offset + 4)
+                    return val
+
 readAt::BS.ByteString -> Int -> Int -> BS.ByteString
 readAt bs pos len = BS.take len (BS.drop pos bs)
 
@@ -36,8 +49,12 @@ readQNameUtil bs pos jumped = let byte = BS.index bs pos in
                                     if (byte .&. 0xC0) /= 0xC0 then
                                         if byte == 0 then 
                                             do 
-                                                put (pos + 1)
-                                                return ""
+                                                if not jumped then
+                                                    do
+                                                    put (pos + 1)
+                                                    return ""
+                                                else do
+                                                    return ""
                                         else
                                             do
                                                 let chunkLen = fromIntegral byte
