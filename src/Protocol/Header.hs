@@ -1,10 +1,11 @@
-module Protocol.Header(DNSResCode(..), DNSHeader(..), word8ToResCode, resCodeValue,parseDNSHeader) where
+module Protocol.Header(DNSResCode(..), DNSHeader(..), word8ToResCode, resCodeValue,parseDNSHeader, serializeDNSHeader) where
 
 import Data.Word
 import Data.Bits
 import Data.ByteString as BS
 import Control.Monad.State
 import Data.MonadicByteString as MBS
+import Data.Helpers as H
 
 data DNSResCode = NOERROR | FORMERR | SERVFAIL | NXDOMAIN | NOTIMP | REFUSED deriving(Eq, Show)
 
@@ -88,4 +89,24 @@ parseDNSHeader bytes =  do
                                             answers = _answers,
                                             authoritativeEntries = _authoritativeEntries,
                                             resourceEntries = _resourceEntries}
+
+serializeDNSHeader:: DNSHeader -> ByteString
+serializeDNSHeader header = BS.concat [tid, flags1, flags2, qns, ans, ae, re]
+                            where tid = H.word16ToBS (transactionID header)
+                                  flags1 = H.word8ToBS (H.boolToWord8 (recursionDesired header) .|.
+                                           (H.boolToWord8 (truncatedMessage header) `shiftL` 1) .|.
+                                           (H.boolToWord8 (authoritativeAnswer header) `shiftL` 2) .|.
+                                           (opcode header `shiftL` 3) .|.
+                                           (H.boolToWord8 (response header) `shiftL` 7))
+                                  flags2 = H.word8ToBS (resCodeValue (rescode header) .|. 
+                                                        (H.boolToWord8 (checking header) `shiftL` 4) .|. 
+                                                        (H.boolToWord8 (authed header) `shiftL` 5 ) .|.  
+                                                        (H.boolToWord8 (z header) `shiftL` 6 ) .|. 
+                                                        (H.boolToWord8 (recursionAvailable header) `shiftL` 7 ) ) 
+                                  qns = H.word16ToBS (questions header) 
+                                  ans = H.word16ToBS (answers header)
+                                  ae = H.word16ToBS  (authoritativeEntries header)
+                                  re = H.word16ToBS (resourceEntries header) 
+                                           
+                                  
 
