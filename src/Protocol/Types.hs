@@ -1,9 +1,10 @@
-module Protocol.Types(DNSResCode, parseDNSHeader) where
+module Protocol.Types(DNSResCode, parseDNSHeader, parseDNSQuestion) where
 
 import Data.Word
 import Data.Bits
 import Data.ByteString as BS
 import Data.MonadicByteString as MBS
+import Net.IPv4 as IP
 import Control.Monad.State
 
 data DNSResCode = NOERROR | FORMERR | SERVFAIL | NXDOMAIN | NOTIMP | REFUSED deriving(Eq, Show)
@@ -50,8 +51,8 @@ data DNSHeader = DNSHeader
   deriving (Eq, Show)
 
 
-parseDNSHeaderImpure:: ByteString -> State Int DNSHeader 
-parseDNSHeaderImpure bytes = if BS.length bytes /= 12 then error "DNSHeader Must be 12 bytes long"
+parseDNSHeader:: ByteString -> State Int DNSHeader 
+parseDNSHeader bytes = if BS.length bytes /= 12 then error "DNSHeader Must be 12 bytes long"
                        else  
                        do
                             _transactionID <- MBS.read16bit bytes
@@ -91,11 +92,39 @@ parseDNSHeaderImpure bytes = if BS.length bytes /= 12 then error "DNSHeader Must
                                             authoritativeEntries = _authoritativeEntries,
                                             resourceEntries = _resourceEntries}
 
-parseDNSHeader:: BS.ByteString -> DNSHeader 
-parseDNSHeader bytes = evalState (parseDNSHeaderImpure bytes) 0
 
 -- serializeDNSHeader:: DNSHeader -> BS.ByteString
 -- serializeDNSHeader header = 
  
 
-                        
+data QueryType = UNKNOWN | A deriving(Eq, Show)
+
+queryTypeWord::QueryType -> Word16
+queryTypeWord UNKNOWN = 0
+queryTypeWord A = 1 
+
+
+wordToQueryType :: Word16 -> QueryType
+wordToQueryType 0 = UNKNOWN
+wordToQueryType 1 = A
+wordToQueryType _ = error "Query Type Not Defined" 
+
+
+
+data DNSQuestion = DNSQuestion{
+    name:: String,
+    qtype:: QueryType
+} deriving(Eq, Show)
+
+parseDNSQuestion:: BS.ByteString -> State Int DNSQuestion
+parseDNSQuestion bytes = do
+                            _name <- readQName bytes
+                            _qtype <- read16bit bytes
+                            _ <- read16bit bytes
+                            return DNSQuestion {name=_name, qtype=wordToQueryType _qtype}
+
+
+data DNSRecord = R_UNKNOWN{domain:: String, q_type:: QueryType, data_len:: Word16, ttl:: Word32} | 
+                 R_A{domain:: String, addr:: IP.IPv4}
+
+

@@ -1,4 +1,4 @@
-module Data.MonadicByteString(readWords, read16bit) where
+module Data.MonadicByteString(readWords, read16bit, readQName) where
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -60,4 +60,9 @@ readQNameUtil bs pos jumped = let byte = BS.index bs pos in
                                                 let len = fromIntegral byte :: Word16
                                                 let offset = fromIntegral (((len .^. 0xC0) `shiftL` 8) .|. secondByte) :: Int
                                                 readQNameUtil bs offset True
+
+readQName::BS.ByteString -> State Int String
+readQName bs = do
+                pos <- get
+                readQNameUtil bs pos False
                                                 
