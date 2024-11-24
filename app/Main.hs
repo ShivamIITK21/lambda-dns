@@ -11,6 +11,10 @@ testParsePacket:: BS.ByteString -> IO()
 testParsePacket bytes = do
                             let packet = evalState (P.parseDNSPacket bytes) 0
                             print packet
+                            let ser_bytes = P.serialIzeDNSPacket packet
+                            let parse_again = evalState (P.parseDNSPacket ser_bytes) 0
+                            print parse_again
+
 
 main :: IO ()
 main = do
