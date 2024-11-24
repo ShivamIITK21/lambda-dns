@@ -28,6 +28,7 @@ library
       Data.Helpers
       Data.MonadicByteString
       Lib
+      Net.Stub
       Protocol.Header
       Protocol.Packet
       Protocol.Question
@@ -44,6 +45,7 @@ library
     , bytestring
     , ip
     , mtl
+    , network
     , split
   default-language: Haskell2010
 
@@ -62,6 +64,7 @@ executable lambda-dns
     , ip
     , lambda-dns
     , mtl
+    , network
     , split
   default-language: Haskell2010
 
@@ -81,5 +84,6 @@ test-suite lambda-dns-test
     , ip
     , lambda-dns
     , mtl
+    , network
     , split
   default-language: Haskell2010

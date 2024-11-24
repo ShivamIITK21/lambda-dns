@@ -25,6 +25,7 @@ dependencies:
 - mtl
 - ip
 - split
+- network
 
 ghc-options:
 - -Wall
