@@ -1,10 +1,6 @@
-module Protocol.Packet(DNSPacket, parseDNSPacket) where
+module Protocol.Packet(DNSPacket, parseDNSPacket, serialIzeDNSPacket) where
 
-import Data.Word
-import Data.Bits
 import Data.ByteString as BS
-import Data.MonadicByteString as MBS
-import Net.IPv4 as IP
 import Control.Monad.State
 import Protocol.Header
 import Protocol.Question
@@ -25,7 +21,13 @@ parseDNSPacket bytes = do
                         _resource_list <- parseDNSRecordList bytes (resourceEntries _header)
                         return DNSPacket {header=_header, question_list=_questions_list, answer_list=_answers_list, authorities_list=_authorities_list, resource_list=_resource_list}
 
-
+serialIzeDNSPacket :: DNSPacket -> BS.ByteString
+serialIzeDNSPacket packet = BS.concat [header_s, question_s, answer_s, auth_s, res_s]
+                            where header_s = serializeDNSHeader (header packet)
+                                  question_s = serializeDNSQuestionList (question_list packet)
+                                  answer_s = serializeDNSRecordList (answer_list packet)
+                                  auth_s = serializeDNSRecordList (authorities_list packet)
+                                  res_s = serializeDNSRecordList (resource_list packet)
 
 
 

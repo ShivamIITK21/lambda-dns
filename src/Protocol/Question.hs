@@ -44,16 +44,6 @@ parseDNSQuestionList bytes num = do
                                         rest <- parseDNSQuestionList bytes (num - 1)
                                         return (q:rest)
 
-serializeQNameFromList:: [String] -> BS.ByteString
-serializeQNameFromList [] = word8ToBS 0
-serializeQNameFromList (s:ss) = if Prelude.length s > 63 then error "Single Label too big to encode"
-                                else BS.concat [label_len, string_bytes, rest]
-                                    where label_len = word16ToBS (fromIntegral (Prelude.length s) :: Word16)
-                                          string_bytes = BSC.pack s
-                                          rest = serializeQNameFromList ss
-
-serializeQName:: String -> BS.ByteString
-serializeQName s = let split_list = splitOn "." s in serializeQNameFromList split_list
                     
 
 serializeDNSQuestion:: DNSQuestion -> BS.ByteString
