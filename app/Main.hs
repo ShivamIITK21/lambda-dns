@@ -2,23 +2,18 @@ module Main (main) where
 
 import qualified Data.MonadicByteString as MS
 import qualified Data.ByteString as BS
-import qualified Protocol.Types as T
+import qualified Protocol.Packet as P 
 import Control.Monad.State
 
 
-testParseQuestion:: BS.ByteString -> IO()
-testParseQuestion bytes = do
-                        let question = evalState (T.parseDNSQuestion bytes) 0
-                        print question
 
 testParsePacket:: BS.ByteString -> IO()
 testParsePacket bytes = do
-                            let packet = evalState (T.parseDNSPacket bytes) 0
+                            let packet = evalState (P.parseDNSPacket bytes) 0
                             print packet
 
 main :: IO ()
 main = do
-    let question = BS.pack [0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,  0x00, 0x01]
     let packet =  BS.pack 
             [ 0x41, 0xC5, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00
             , 0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00

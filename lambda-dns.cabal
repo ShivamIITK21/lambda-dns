@@ -27,7 +27,10 @@ library
   exposed-modules:
       Data.MonadicByteString
       Lib
-      Protocol.Types
+      Protocol.Header
+      Protocol.Packet
+      Protocol.Question
+      Protocol.Record
   other-modules:
       Paths_lambda_dns
   autogen-modules:
