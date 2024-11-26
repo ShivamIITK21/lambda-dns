@@ -4,6 +4,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import Data.Word
 import Data.Bits
+import Control.Monad(when)
 import Control.Monad.State
 
 
@@ -15,7 +16,6 @@ readWords bs n = do
                         let readBytes = BS.take n (BS.drop offset bs)
                         put (offset + BS.length readBytes)
                         return (BS.unpack readBytes)
-
 
 read16bit::BS.ByteString -> State Int Word16 
 read16bit bs = do
@@ -49,19 +49,15 @@ readQNameUtil bs pos jumped = let byte = BS.index bs pos in
                                     if (byte .&. 0xC0) /= 0xC0 then
                                         if byte == 0 then 
                                             do 
-                                                if not jumped then
-                                                    do
-                                                    put (pos + 1)
-                                                    return ""
-                                                else do
-                                                    return ""
+                                                when (not jumped) (put (pos + 1)) -- from Control.Monad
+                                                return ""
                                         else
                                             do
                                                 let chunkLen = fromIntegral byte
                                                 let chunk = BSC.unpack (readAt bs (pos + 1) chunkLen)
                                                 rest <- readQNameUtil bs (pos + 1 + chunkLen) jumped
                                                 if not (null rest) then return (chunk ++ ['.'] ++ rest)
-                                                else return (chunk ++ rest) 
+                                                else return (chunk)
                                         
                                     else
                                         if not jumped then
