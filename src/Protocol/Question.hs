@@ -7,6 +7,7 @@ import Data.MonadicByteString as MBS
 import Data.List.Split
 import Control.Monad.State
 import Data.Helpers
+import Debug.Trace(trace)
 
 data QueryType = UNKNOWN | A | AAAA | CNAME | MX | NS deriving(Eq, Show, Enum)
 
@@ -20,13 +21,12 @@ queryTypeWord AAAA      = 28
 
 
 wordToQueryType :: Word16 -> QueryType
-wordToQueryType 0       = UNKNOWN
 wordToQueryType 1       = A
 wordToQueryType 2       = NS
 wordToQueryType 5       = CNAME
 wordToQueryType 15      = MX
 wordToQueryType 28      = AAAA
-wordToQueryType _ = error "Query Type Not Defined" 
+wordToQueryType w = trace ("Query Type Not Defined: " ++ show(w)) UNKNOWN
 
 
 
@@ -40,7 +40,7 @@ parseDNSQuestion bytes = do
                             _name <- readQName bytes
                             _qtype <- read16bit bytes
                             _ <- read16bit bytes
-                            return DNSQuestion {name=_name, qtype=wordToQueryType _qtype}
+                            return DNSQuestion {name=_name, qtype=(trace (show _qtype) (wordToQueryType _qtype))}
 
 parseDNSQuestionList:: BS.ByteString -> Word16 -> StateT Int Maybe [DNSQuestion]
 parseDNSQuestionList bytes num = do

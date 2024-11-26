@@ -8,6 +8,7 @@ import Net.IPv4 as IP4
 import Net.IPv6 as IP6
 import Control.Monad.State
 import Data.Helpers 
+import Debug.Trace(trace)
 
 data DNSRecord = R_A{domain:: String, addr4:: IP4.IPv4, ttl:: Word32} |
                  R_NS{domain::String, nsdname::String, ttl:: Word32} |
@@ -27,7 +28,7 @@ parseDNSRecord:: BS.ByteString -> StateT Int Maybe DNSRecord
 parseDNSRecord bytes = do
                         _domain <- readQName bytes
                         qtype_num <- read16bit bytes
-                        let _qtype = wordToQueryType qtype_num
+                        let _qtype = (trace ("record" ++ show qtype_num) (wordToQueryType qtype_num))
                         _class <- read16bit bytes -- useless, but naming it so it's obvious
                         _ttl <- read32bit bytes
                         len <- read16bit bytes
@@ -82,6 +83,51 @@ serializeDNSRecord (R_A _dom _addr _ttl) = do
                                                  oc2 = word8ToBS o2
                                                  oc3 = word8ToBS o3
                                                  oc4 = word8ToBS o4
+serializeDNSRecord (R_NS _dom _nsdn _ttl) = do
+                                            qname_s <- serializeQName _dom
+                                            nsdname <- serializeQName _nsdn
+                                            let len_s = word16ToBS (fromIntegral(BS.length nsdname))
+                                            return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, nsdname])
+                                           where 
+                                                 qtype_s = word16ToBS (queryTypeWord NS)
+                                                 class_s = word16ToBS 1
+                                                 ttl_s = word32ToBS _ttl
+
+serializeDNSRecord (R_CNAME _dom _cdom _ttl) = do
+                                            qname_s <- serializeQName _dom
+                                            canonical <- serializeQName _cdom
+                                            let len_s = word16ToBS (fromIntegral(BS.length canonical))
+                                            return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, canonical])
+                                           where 
+                                                 qtype_s = word16ToBS (queryTypeWord NS)
+                                                 class_s = word16ToBS 1
+                                                 ttl_s = word32ToBS _ttl
+
+serializeDNSRecord (R_MX _dom _pref _exch _ttl) = do
+                                            qname_s <- serializeQName _dom
+                                            exchange <- serializeQName _exch
+                                            let len_s = word16ToBS (fromInteger((toInteger(BS.length exchange) + 2)))
+                                            return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, pref, exchange])
+                                           where 
+                                                 qtype_s = word16ToBS (queryTypeWord NS)
+                                                 class_s = word16ToBS 1
+                                                 pref = word16ToBS _pref
+                                                 ttl_s = word32ToBS _ttl
+
+serializeDNSRecord (R_AAAA _dom _addr _ttl) = do
+                                            qname_s <- serializeQName _dom
+                                            return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, w32_0_s, w32_1_s, w32_2_s, w32_3_s])
+                                           where 
+                                                 qtype_s = word16ToBS (queryTypeWord A)
+                                                 class_s = word16ToBS 1
+                                                 ttl_s = word32ToBS _ttl
+                                                 len_s = word16ToBS 16
+                                                 (w32_0, w32_1, w32_2, w32_3) = IP6.toWord32s _addr
+                                                 w32_0_s = word32ToBS w32_0
+                                                 w32_1_s = word32ToBS w32_1
+                                                 w32_2_s = word32ToBS w32_2
+                                                 w32_3_s = word32ToBS w32_3
+                                                 
 
 serializeDNSRecordList:: [DNSRecord] -> Maybe BS.ByteString
 serializeDNSRecordList xs = do 
