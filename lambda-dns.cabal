@@ -28,6 +28,7 @@ library
       Data.Helpers
       Data.MonadicByteString
       Lib
+      Net.Listener
       Net.Stub
       Protocol.Header
       Protocol.Packet
