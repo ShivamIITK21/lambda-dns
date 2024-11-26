@@ -51,7 +51,7 @@ data DNSHeader = DNSHeader
   deriving (Eq, Show)
 
 
-parseDNSHeader:: ByteString -> State Int DNSHeader 
+parseDNSHeader:: ByteString -> StateT Int Maybe DNSHeader 
 parseDNSHeader bytes =  do
                             _transactionID <- MBS.read16bit bytes
                             flags <- MBS.read16bit bytes

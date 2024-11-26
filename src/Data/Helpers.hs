@@ -1,6 +1,7 @@
 module Data.Helpers(word32ToBS, word16ToBS, word8ToBS, boolToWord8, serializeQName) where
 
 import Data.ByteString as BS
+import Control.Monad(guard)
 import Data.ByteString.Char8 as BSC
 import Data.List.Split
 import Data.Word
@@ -28,13 +29,15 @@ boolToWord8 b = if b then 1 else 0
 
 
 
-serializeQNameFromList:: [String] -> BS.ByteString
-serializeQNameFromList [] = word8ToBS 0
-serializeQNameFromList (s:ss) = if Prelude.length s > 63 then error "Single Label too big to encode"
-                                else BS.concat [label_len, string_bytes, rest]
+serializeQNameFromList:: [String] -> Maybe BS.ByteString
+serializeQNameFromList [] = return (word8ToBS 0)
+serializeQNameFromList (s:ss) = do 
+                                guard (Prelude.length s <= 63)
+                                rest <- serializeQNameFromList ss
+                                return (BS.concat [label_len, string_bytes, rest])
                                     where label_len = word8ToBS (fromIntegral (Prelude.length s) :: Word8)
                                           string_bytes = BSC.pack s
-                                          rest = serializeQNameFromList ss
 
-serializeQName:: String -> BS.ByteString
-serializeQName s = let split_list = splitOn "." s in serializeQNameFromList split_list
+serializeQName:: String -> Maybe BS.ByteString
+serializeQName s = do 
+                    let split_list = splitOn "." s in serializeQNameFromList split_list

@@ -35,14 +35,14 @@ data DNSQuestion = DNSQuestion{
     qtype:: QueryType
 } deriving(Eq, Show)
 
-parseDNSQuestion:: BS.ByteString -> State Int DNSQuestion
+parseDNSQuestion:: BS.ByteString -> StateT Int Maybe DNSQuestion
 parseDNSQuestion bytes = do
                             _name <- readQName bytes
                             _qtype <- read16bit bytes
                             _ <- read16bit bytes
                             return DNSQuestion {name=_name, qtype=wordToQueryType _qtype}
 
-parseDNSQuestionList:: BS.ByteString -> Word16 -> State Int [DNSQuestion]
+parseDNSQuestionList:: BS.ByteString -> Word16 -> StateT Int Maybe [DNSQuestion]
 parseDNSQuestionList bytes num = do
                                 if num == 0 then
                                     do return []
@@ -54,11 +54,15 @@ parseDNSQuestionList bytes num = do
 
                     
 
-serializeDNSQuestion:: DNSQuestion -> BS.ByteString
-serializeDNSQuestion question = BS.concat [qname_s, qtype_s, class_s] 
-                                where qname_s = serializeQName (name question)
+serializeDNSQuestion:: DNSQuestion -> Maybe BS.ByteString
+serializeDNSQuestion question = do
+                                    qname_s <- serializeQName (name question)
+                                    return (BS.concat [qname_s, qtype_s, class_s])
+                                where   
                                       qtype_s = word16ToBS (queryTypeWord (qtype question))
                                       class_s = word16ToBS 1
 
-serializeDNSQuestionList:: [DNSQuestion] -> BS.ByteString
-serializeDNSQuestionList xs = BS.concat (Prelude.map serializeDNSQuestion xs)
+serializeDNSQuestionList:: [DNSQuestion] -> Maybe BS.ByteString
+serializeDNSQuestionList xs = do 
+                                questions <- Prelude.mapM serializeDNSQuestion xs
+                                return (BS.concat questions)

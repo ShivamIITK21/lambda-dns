@@ -23,7 +23,7 @@ wordsToIPv4 ws = if Prelude.length ws == 4 then IP4.fromOctets (ws !! 0) (ws !! 
 wordsToIPv6 ws = if Prelude.length ws == 16 then IP6.fromOctets (ws !! 0) (ws !! 1) (ws !! 2) (ws !! 3) (ws !! 4) (ws !! 5) (ws !! 6) (ws !! 7) (ws !! 8) (ws !! 9) (ws !! 10) (ws !! 11) (ws !! 12) (ws !! 13) (ws !! 14) (ws !! 15)
                  else error "Can only create IPv6 out for 16 words"
 
-parseDNSRecord:: BS.ByteString -> State Int DNSRecord
+parseDNSRecord:: BS.ByteString -> StateT Int Maybe DNSRecord
 parseDNSRecord bytes = do
                         _domain <- readQName bytes
                         qtype_num <- read16bit bytes
@@ -56,7 +56,7 @@ parseDNSRecord bytes = do
                                 return R_UNKNOWN {domain=_domain, q_type=_qtype, data_len=len, ttl=_ttl}
                             _ -> error "Should not be here"
 
-parseDNSRecordList:: BS.ByteString -> Word16 -> State Int [DNSRecord]
+parseDNSRecordList:: BS.ByteString -> Word16 -> StateT Int Maybe [DNSRecord]
 parseDNSRecordList bytes num = do
                                 if num == 0 then
                                     do return []
@@ -66,11 +66,13 @@ parseDNSRecordList bytes num = do
                                         rest <- parseDNSRecordList bytes (num - 1)
                                         return (r:rest)
 
-serializeDNSRecord:: DNSRecord -> BS.ByteString
-serializeDNSRecord (R_UNKNOWN {}) = BS.pack [] 
+serializeDNSRecord:: DNSRecord -> Maybe BS.ByteString
+serializeDNSRecord (R_UNKNOWN {}) = return (BS.pack [])
 
-serializeDNSRecord (R_A _dom _addr _ttl) = BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, oc1, oc2, oc3, oc4]
-                                           where qname_s = serializeQName _dom
+serializeDNSRecord (R_A _dom _addr _ttl) = do
+                                            qname_s <- serializeQName _dom
+                                            return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, oc1, oc2, oc3, oc4])
+                                           where 
                                                  qtype_s = word16ToBS (queryTypeWord A)
                                                  class_s = word16ToBS 1
                                                  ttl_s = word32ToBS _ttl
@@ -81,5 +83,7 @@ serializeDNSRecord (R_A _dom _addr _ttl) = BS.concat [qname_s, qtype_s, class_s,
                                                  oc3 = word8ToBS o3
                                                  oc4 = word8ToBS o4
 
-serializeDNSRecordList:: [DNSRecord] -> BS.ByteString
-serializeDNSRecordList xs = BS.concat (Prelude.map serializeDNSRecord xs)
+serializeDNSRecordList:: [DNSRecord] -> Maybe BS.ByteString
+serializeDNSRecordList xs = do 
+                                record_s <- Prelude.mapM serializeDNSRecord xs
+                                return (BS.concat record_s)

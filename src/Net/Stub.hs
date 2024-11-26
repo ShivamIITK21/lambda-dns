@@ -21,14 +21,21 @@ runUDPClient host port client = withSocketsDo $ do
 sendDNSStubRequest :: DNSPacket -> IO()
 sendDNSStubRequest p = runUDPClient "8.8.8.8" "53" $ \sock serverAddr -> do
     -- Send a message to the server
-    let message = C.unpack (serialIzeDNSPacket p)
-    sendTo sock (C.pack message) serverAddr
-    putStrLn  "Sent: "
-    print p
+    let res = serialIzeDNSPacket p
+    case res of
+        Nothing -> print "Could not serialze Packet"
+        Just pack -> do 
+                        let message = C.unpack pack
+                        sendTo sock (C.pack message) serverAddr
+                        putStrLn  "Sent: "
+                        print p
 
     -- Receive a response from the server
     (msg, _) <- recvFrom sock 1024
     print "Received!"
-    let recvP = evalState (parseDNSPacket msg) 0
-    print recvP
+    let parseRes = parseDNSPacket msg
+    case parseRes of
+        Nothing -> print "Could Not parse recv packet"
+        Just parsed -> do
+                        print parsed 
     
