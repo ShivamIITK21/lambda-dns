@@ -11,12 +11,11 @@ import Control.Monad.State
 runUDPClient :: HostName -> ServiceName -> (Socket -> SockAddr -> IO a) -> IO a
 runUDPClient host port client = withSocketsDo $ do
     addr <- resolve
-    E.bracket (open addr) close (\sock -> client sock (addrAddress addr))
+    E.bracket (openSocket addr) close (\sock -> client sock (addrAddress addr))
   where
     resolve = do
         let hints = defaultHints { addrSocketType = Datagram }
         head <$> getAddrInfo (Just hints) (Just host) (Just port)
-    open addr = openSocket addr
 
 
 sendDNSStubRequest :: DNSPacket -> IO()
