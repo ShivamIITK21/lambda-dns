@@ -8,16 +8,24 @@ import Data.List.Split
 import Control.Monad.State
 import Data.Helpers
 
-data QueryType = UNKNOWN | A deriving(Eq, Show)
+data QueryType = UNKNOWN | A | AAAA | CNAME | MX | NS deriving(Eq, Show, Enum)
 
 queryTypeWord::QueryType -> Word16
-queryTypeWord UNKNOWN = 0
-queryTypeWord A = 1 
+queryTypeWord UNKNOWN   = 0
+queryTypeWord A         = 1
+queryTypeWord NS        = 2
+queryTypeWord CNAME     = 5
+queryTypeWord MX        = 15
+queryTypeWord AAAA      = 28
 
 
 wordToQueryType :: Word16 -> QueryType
-wordToQueryType 0 = UNKNOWN
-wordToQueryType 1 = A
+wordToQueryType 0       = UNKNOWN
+wordToQueryType 1       = A
+wordToQueryType 2       = NS
+wordToQueryType 5       = CNAME
+wordToQueryType 15      = MX
+wordToQueryType 28      = AAAA
 wordToQueryType _ = error "Query Type Not Defined" 
 
 
