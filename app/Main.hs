@@ -9,7 +9,7 @@ import Control.Monad.State
 import Net.Stub (sendDNSStubRequest)
 import Protocol.Packet (parseDNSPacket)
 import Debug.Trace(trace)
-import Net.Resolver (lookupQName)
+import Net.Resolver (lookupQName, getAuthority)
 import Net.IPv4 (fromOctets)
 
 

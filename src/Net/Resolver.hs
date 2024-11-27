@@ -1,7 +1,7 @@
 module Net.Resolver(lookupQName) where
 
 import Protocol.Question (QueryType(..), DNSQuestion(..))
-import Protocol.Header (defaultHeader)
+import Protocol.Header
 import Protocol.Record
 import Network.Socket
 import Protocol.Packet
@@ -9,6 +9,7 @@ import Net.IPv4 as IP4
 import qualified Control.Exception as E
 import qualified Data.ByteString.Char8 as C
 import Network.Socket.ByteString (recvFrom, sendTo)
+import Control.Monad(when)
 
 runUDPClient :: HostName -> ServiceName -> (Socket -> SockAddr -> IO a) -> IO a
 runUDPClient host port client = withSocketsDo $ do
@@ -39,16 +40,48 @@ sendDNSPacket packet ip = runUDPClient (encodeString ip) "53" $ \sock serverAddr
     
 
 lookupQName :: String -> QueryType -> IPv4 -> IO (Maybe DNSPacket)
-lookupQName qname_ qtype_ ip = let question = DNSQuestion qname_ qtype_ 
+lookupQName qname_ qtype_ ip = let question = DNSQuestion qname_ qtype_
                                    packet = DNSPacket defaultHeader [question] [] [] [] in  
                                    sendDNSPacket packet ip
+
+
+--god_ip = IP4.any
+
+lookupDomain:: String -> QueryType -> IP4.IPv4 -> IO(Maybe DNSPacket)
+lookupDomain domain qtype ip = 
+    do
+        maybe_response <- lookupQName domain qtype ip -- a maybe dnspacket    
+        no_further_action <- (case maybe_response of
+                                (Just response) -> 
+                                    if (((not.null) (answer_list response) 
+                                            && ((rescode.header) response) == NOERROR)
+                                        || ((rescode.header) response) == NXDOMAIN) 
+                                    then (return True)
+                                    else (return False)
+                                (Nothing) -> (return True))
+        if no_further_action then
+            do
+                return maybe_response
+        else do
+                maybe_ip:: <- (case maybe_response of
+                                (Just response) -> getAuthorityIPs response ip
+                                Nothing -> Nothing)::(IO(Maybe (IPv4)))
+                return (case maybe_ip of 
+                    (Nothing) -> (return Nothing)
+                    (Just new_ip) -> (lookupDomain domain qtype new_ip))
+    
+        
+            
+    
+
+
 
 getAuthorityIPs::DNSPacket -> IP4.IPv4 -> IO(Maybe IP4.IPv4)
 getAuthorityIPs packet root_ip = 
     let results = [(nsdom, checkNameserver packet nsdom) | R_NS _ nsdom _ <- authorities_list packet]
         ips = [ ip | (_, Just ip) <- results]
         unresolved = [ dom | (dom, Nothing) <- results ]
-        lookups = map (\dom -> lookupQName dom A root_ip) unresolved
+        lookups = map (\dom -> lookupDomain dom A root_ip) unresolved
         resolutions = map (fmap (\maybe_packet -> 
             do
                 packet <- maybe_packet
@@ -56,6 +89,8 @@ getAuthorityIPs packet root_ip =
                 if ((not.null) ans_ips) then return (Prelude.head ans_ips) else Nothing
             )) lookups 
     in  if (not (null ips)) then do return (Just (Prelude.head ips)) else Prelude.head resolutions
+
+
 
 -- at this point we have a [String] that we want to convert to IO(Maybe IP4.IPv4)
 -- we have lookupQName that will basically do String -> IO(Maybe DNSPacket)
