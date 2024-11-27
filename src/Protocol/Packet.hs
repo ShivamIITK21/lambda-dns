@@ -1,5 +1,6 @@
-module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket, checkNameserver) where
+module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket, checkNameserver, replaceId) where
 
+import Data.Word
 import Data.ByteString as BS
 import Control.Monad.State
 import Protocol.Header
@@ -14,6 +15,31 @@ data DNSPacket = DNSPacket{header::DNSHeader,
                            authorities_list:: [DNSRecord],
                            resource_list:: [DNSRecord]
                            } deriving(Show, Eq)
+
+replaceId::DNSPacket -> Word16 -> DNSPacket
+replaceId resPacket newid = 
+        DNSPacket {
+            header = DNSHeader {
+                transactionID = newid,
+                recursionDesired = recursionDesired packetHeader, 
+                truncatedMessage = truncatedMessage packetHeader,
+                authoritativeAnswer = authoritativeAnswer packetHeader,
+                opcode = opcode packetHeader,
+                response = response packetHeader,
+                rescode = rescode packetHeader,
+                checking = checking packetHeader,
+                authed = authed packetHeader,
+                z = z packetHeader,
+                recursionAvailable = recursionAvailable packetHeader,
+                questions = questions packetHeader,
+                answers = answers packetHeader,
+                authoritativeEntries = authoritativeEntries packetHeader,
+                resourceEntries = resourceEntries packetHeader},
+            question_list = question_list resPacket, 
+            answer_list = answer_list resPacket,
+            authorities_list = authorities_list resPacket,
+            resource_list = resource_list resPacket}
+    where packetHeader = header resPacket
 
 parseDNSPacketImpure:: BS.ByteString -> StateT Int Maybe DNSPacket
 parseDNSPacketImpure bytes = do

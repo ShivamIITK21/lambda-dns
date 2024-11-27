@@ -5,6 +5,7 @@ import Network.Socket.ByteString (recvFrom, sendTo)
 import qualified Data.ByteString.Char8 as C
 import Control.Exception (bracket)
 import Protocol.Packet as P
+import Protocol.Header as PH
 import Net.Stub
 
 resolve :: String -> IO AddrInfo
@@ -43,6 +44,7 @@ listenForDNSReq sock = do
                                                                 print "Could Not serialized response"
                                                                 listenForDNSReq sock
                                                     Just response_s -> do
+                                                                        let new_response = replaceId resPacket ((PH.transactionID.header) packet)
                                                                         _ <- sendTo sock response_s sender
                                                                         listenForDNSReq sock  -- Keep listening for more packets
 
