@@ -1,4 +1,4 @@
-module Net.Resolver(lookupDomain) where
+module Net.Resolver(lookupDomain, godIp) where
 
 import Protocol.Question (QueryType(..), DNSQuestion(..))
 import Protocol.Header
@@ -23,6 +23,7 @@ runUDPClient host port client = withSocketsDo $ do
 sendDNSPacket :: DNSPacket -> IPv4 -> IO(Maybe DNSPacket)
 sendDNSPacket packet ip = runUDPClient (encodeString ip) "53" $ \sock serverAddr -> do
     -- Send a message to the server
+    Prelude.print "Sending..."
     let maybeSerialnput = serialIzeDNSPacket packet 
     case maybeSerialnput of
         Nothing -> do 
@@ -30,7 +31,9 @@ sendDNSPacket packet ip = runUDPClient (encodeString ip) "53" $ \sock serverAddr
         Just serialInput -> do 
                         let message = C.unpack serialInput 
                         _ <- sendTo sock (C.pack message) serverAddr
+                        Prelude.print "waiting to recv..."
                         (msg, _) <- recvFrom sock 512 
+                        Prelude.print "Recv"
                         let parseRes = parseDNSPacket msg
                         case parseRes of
                             Nothing -> do 

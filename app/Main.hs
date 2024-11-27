@@ -31,5 +31,3 @@ main = do
     --         , 0x00, 0x2F, 0x00, 0x04, 0xAC, 0xD9, 0xA6, 0x0E 
     --         ]
     L.startServer "8080"
---    response <- lookupDomain "www.iitk.ac.in" P.A (fromOctets 198 97 190 53)
---    print response

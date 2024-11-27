@@ -2,11 +2,11 @@ module Net.Listener(startServer) where
 
 import Network.Socket
 import Network.Socket.ByteString (recvFrom, sendTo)
-import qualified Data.ByteString.Char8 as C
+import Net.Resolver as R
 import Control.Exception (bracket)
 import Protocol.Packet as P
 import Protocol.Header as PH
-import Net.Stub
+import Protocol.Question as Q 
 
 resolve :: String -> IO AddrInfo
 resolve port = do
@@ -31,22 +31,19 @@ listenForDNSReq sock = do
                     listenForDNSReq sock
         Just packet -> do
                         print "Parsed! :"
-                        print packet
-                        res <- sendDNSStubRequest packet
+                        let domain = Q.name (head (P.question_list packet))
+                        res <- R.lookupDomain domain Q.A R.godIp
                         case res of
                             Nothing -> do
                                          print "Could not resolve"
                                          listenForDNSReq sock
                             Just resPacket -> do print "Resolved!"
-                                                 let response = serialIzeDNSPacket resPacket
-                                                 case response of
-                                                    Nothing -> do 
-                                                                print "Could Not serialized response"
-                                                                listenForDNSReq sock
-                                                    Just response_s -> do
-                                                                        let new_response = replaceId resPacket ((PH.transactionID.header) packet)
-                                                                        _ <- sendTo sock response_s sender
-                                                                        listenForDNSReq sock  -- Keep listening for more packets
+                                                 let new_response = serialIzeDNSPacket (replaceId resPacket ((PH.transactionID.header) packet))
+                                                 case new_response of
+                                                            Nothing -> do listenForDNSReq sock
+                                                            Just serial_response -> do
+                                                                                     _ <- sendTo sock serial_response sender
+                                                                                     listenForDNSReq sock  -- Keep listening for more packets
 
 startServer:: String -> IO()
 startServer s = withSocketsDo $ do 
