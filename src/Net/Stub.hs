@@ -21,7 +21,7 @@ runUDPClient host port client = withSocketsDo $ do
 sendDNSStubRequest :: DNSPacket -> IO ( Maybe DNSPacket )
 sendDNSStubRequest p = runUDPClient "1.1.1.1" "53" $ \sock serverAddr -> do
     -- Send a message to the server
-    let res = serialIzeDNSPacket p
+    let res = serializeDNSPacket p
 
     case res of
         Nothing -> do 

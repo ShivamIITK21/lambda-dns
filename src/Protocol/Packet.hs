@@ -1,4 +1,4 @@
-module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket, checkNameserver, replaceId) where
+module Protocol.Packet(DNSPacket(..), parseDNSPacket, serializeDNSPacket, checkNameserver, replaceId) where
 
 import Data.Word
 import Data.ByteString as BS
@@ -55,8 +55,8 @@ parseDNSPacket :: BS.ByteString -> Maybe DNSPacket
 parseDNSPacket bytes =  evalStateT (parseDNSPacketImpure bytes) 0
 
 
-serialIzeDNSPacket :: DNSPacket -> Maybe BS.ByteString
-serialIzeDNSPacket packet = do 
+serializeDNSPacket :: DNSPacket -> Maybe BS.ByteString
+serializeDNSPacket packet = do 
                                 question_s <- serializeDNSQuestionList (question_list packet)
                                 answer_s <- serializeDNSRecordList (answer_list packet)
                                 auth_s <- serializeDNSRecordList (authorities_list packet)

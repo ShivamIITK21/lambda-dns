@@ -10,6 +10,8 @@ import qualified Control.Exception as E
 import qualified Data.ByteString.Char8 as C
 import Network.Socket.ByteString (recvFrom, sendTo)
 import Control.Monad(when)
+import System.Timeout(timeout)
+import Control.Concurrent(threadDelay)
 
 runUDPClient :: HostName -> ServiceName -> (Socket -> SockAddr -> IO a) -> IO a
 runUDPClient host port client = withSocketsDo $ do
@@ -24,7 +26,7 @@ sendDNSPacket :: DNSPacket -> IPv4 -> IO(Maybe DNSPacket)
 sendDNSPacket packet ip = runUDPClient (encodeString ip) "53" $ \sock serverAddr -> do
     -- Send a message to the server
     Prelude.print "Sending..."
-    let maybeSerialnput = serialIzeDNSPacket packet 
+    let maybeSerialnput = serializeDNSPacket packet 
     case maybeSerialnput of
         Nothing -> do 
                         return Nothing
@@ -32,14 +34,19 @@ sendDNSPacket packet ip = runUDPClient (encodeString ip) "53" $ \sock serverAddr
                         let message = C.unpack serialInput 
                         _ <- sendTo sock (C.pack message) serverAddr
                         Prelude.print "waiting to recv..."
-                        (msg, _) <- recvFrom sock 512 
-                        Prelude.print "Recv"
-                        let parseRes = parseDNSPacket msg
-                        case parseRes of
+                        maybe_msg <- timeout 5000000 (recvFrom sock 512)
+                        case maybe_msg of 
                             Nothing -> do 
-                                          return Nothing
-                            Just parsed -> do
-                                            return (Just parsed)
+                                Prelude.print "Failed to receive in 5 seconds"
+                                return Nothing
+                            Just (msg, _) -> do
+                                Prelude.print "Recv"
+                                let parseRes = parseDNSPacket msg
+                                case parseRes of
+                                    Nothing -> do 
+                                                  return Nothing
+                                    Just parsed -> do
+                                                    return (Just parsed)
     
 
 lookupQName :: String -> QueryType -> IPv4 -> IO (Maybe DNSPacket)
@@ -52,21 +59,34 @@ godIp :: IP4.IPv4
 godIp = fromOctets 198 97 190 53
 
 lookupDomain:: String -> QueryType -> IP4.IPv4 -> IO(Maybe DNSPacket)
-lookupDomain domain qtype ip = do
-                                    maybe_response <- lookupQName domain qtype ip 
+lookupDomain _domain _qtype ip = do
+                                    Prelude.print("\n\nlooking up " ++ _domain ++ " with IP " ++ show(ip) ++ "...\n\n")
+                                    threadDelay 500000
+                                    maybe_response <- lookupQName _domain _qtype ip 
                                     Prelude.print maybe_response
                                     case maybe_response of
                                         Nothing -> return Nothing
-                                        Just response -> if (not (null (answer_list response)) && (rescode.header)response == NOERROR) then
+                                        Just response -> if ((not.null.answer_list) response && (rescode.header)response == NOERROR && ((qtype.head.question_list) response == (recordToQueryType.head.answer_list) response)) then
                                                             return (Just response)
                                                          else if ((rescode.header) response == NXDOMAIN) then
                                                             return (Just response)
+                                                       else if ( (not.null.answer_list) response && (recordToQueryType.head.answer_list) response == CNAME) then do
+                                                          let new_record = (head.answer_list) response
+                                                          Prelude.print "Received CNAME, looking up new domain"
+                                                          if (domain new_record == (name.head.question_list) response) 
+                                                          then do
+                                                            new_lookup <- lookupDomain (canonical new_record) _qtype ip 
+                                                            case new_lookup of
+                                                                Nothing -> return Nothing
+                                                                Just new_response -> return (Just (DNSPacket {header = (header response), question_list = (question_list response), answer_list = (answer_list response) ++ (answer_list new_response), authorities_list = (authorities_list response), resource_list = (resource_list response)}))
+                                                          else return Nothing
                                                          else do
                                                             maybe_authority_ip <- getAuthorityIPs response godIp 
                                                             case maybe_authority_ip of
                                                                 Nothing -> return Nothing
                                                                 Just authority_ip -> do
-                                                                                        recursvie <- lookupDomain domain qtype authority_ip
+                                                                                        Prelude.print ("new lookup with ip " ++ show(authority_ip))
+                                                                                        recursvie <- lookupDomain _domain _qtype authority_ip
                                                                                         return recursvie
 
                                                                 
@@ -111,7 +131,7 @@ getAuthorityIPs packet root_ip =
                 let ans_ips = [ans_ip | (R_A _ ans_ip _) <- answer_list packet ] 
                 if ((not.null) ans_ips) then return (Prelude.head ans_ips) else Nothing
             )) lookups 
-    in  if (not (null ips)) then do return (Just (Prelude.head ips)) else Prelude.head resolutions
+    in  if (not (null ips)) then do return (Just (Prelude.head ips)) else if ((not.null) resolutions) then Prelude.head resolutions else do return (Just godIp)
 
 
 

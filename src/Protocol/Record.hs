@@ -1,4 +1,4 @@
-module Protocol.Record(DNSRecord(..), parseDNSRecordList, serializeDNSRecordList) where
+module Protocol.Record(DNSRecord(..), parseDNSRecordList, serializeDNSRecordList, recordToQueryType) where
 
 import Protocol.Question
 import Data.Word
@@ -17,6 +17,14 @@ data DNSRecord = R_A{domain:: String, addr4:: IP4.IPv4, ttl:: Word32} |
                  R_AAAA{domain:: String, addr6:: IP6.IPv6, ttl:: Word32} |
                  R_UNKNOWN{domain:: String, q_type:: QueryType, data_len:: Word16, ttl:: Word32}
                  deriving(Show, Eq)
+
+recordToQueryType::DNSRecord -> QueryType
+recordToQueryType (R_A _ _ _)           = A
+recordToQueryType (R_NS _ _ _)          = NS
+recordToQueryType (R_CNAME _ _ _)       = CNAME
+recordToQueryType (R_MX _ _ _ _)        = MX
+recordToQueryType (R_AAAA _ _ _)        = AAAA
+recordToQueryType _                     = UNKNOWN
 
 wordsToIPv4:: [Word8] -> IP4.IPv4
 wordsToIPv4 ws = if Prelude.length ws == 4 then IP4.fromOctets (ws !! 0) (ws !! 1) (ws !! 2) (ws !! 3)
