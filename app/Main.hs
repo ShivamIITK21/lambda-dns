@@ -11,7 +11,7 @@ import Protocol.Packet (parseDNSPacket)
 import Debug.Trace(trace)
 import Net.Resolver (lookupDomain)
 import Net.IPv4 (fromOctets)
-import Filterlist(readFilterList)
+import Filterlist(readFilterList, isURLBlocked)
 
 
 main :: IO ()
@@ -31,7 +31,9 @@ main = do
     --         , 0x00, 0x01, 0x00, 0x01, 0xC0, 0x0C, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00
     --         , 0x00, 0x2F, 0x00, 0x04, 0xAC, 0xD9, 0xA6, 0x0E 
     --         ]
-    filterlist <- readFilterList "filterlist.txt"
-    L.startServer "8080" filterlist
+    filterlist <- readFilterList "./filterlist.txt"
+--    print (filterlist)
+--    print (isURLBlocked filterlist "bing.com")
+    L.startServer "53" filterlist
 --    response <- lookupDomain "www.iitk.ac.in" P.A (fromOctets 198 97 190 53)
 --    print response
