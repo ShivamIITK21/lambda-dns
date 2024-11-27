@@ -1,4 +1,4 @@
-module Protocol.Question(QueryType(..), DNSQuestion, queryTypeWord,wordToQueryType,parseDNSQuestionList, serializeDNSQuestionList) where
+module Protocol.Question(QueryType(..), DNSQuestion(..),queryTypeWord,wordToQueryType,parseDNSQuestionList, serializeDNSQuestionList) where
 
 import Data.Word
 import Data.ByteString as BS
@@ -34,6 +34,7 @@ data DNSQuestion = DNSQuestion{
     name:: String,
     qtype:: QueryType
 } deriving(Eq, Show)
+
 
 parseDNSQuestion:: BS.ByteString -> StateT Int Maybe DNSQuestion
 parseDNSQuestion bytes = do

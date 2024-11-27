@@ -29,6 +29,7 @@ library
       Data.MonadicByteString
       Lib
       Net.Listener
+      Net.Resolver
       Net.Stub
       Protocol.Header
       Protocol.Packet

@@ -4,10 +4,13 @@ import qualified Net.Listener as L
 import qualified Data.MonadicByteString as MS
 import qualified Data.ByteString as BS
 import qualified Protocol.Packet as P 
+import qualified Protocol.Question as P 
 import Control.Monad.State
 import Net.Stub (sendDNSStubRequest)
 import Protocol.Packet (parseDNSPacket)
 import Debug.Trace(trace)
+import Net.Resolver (lookupQName)
+import Net.IPv4 (fromOctets)
 
 
 main :: IO ()
@@ -27,4 +30,6 @@ main = do
     --         , 0x00, 0x01, 0x00, 0x01, 0xC0, 0x0C, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00
     --         , 0x00, 0x2F, 0x00, 0x04, 0xAC, 0xD9, 0xA6, 0x0E 
     --         ]
-    L.startServer "8080"
+    -- L.startServer "8080"
+    response <- lookupQName "www.google.com" P.A (fromOctets 198 41 0 4)
+    print response

@@ -1,4 +1,4 @@
-module Protocol.Header(DNSResCode(..), DNSHeader(..), word8ToResCode, resCodeValue,parseDNSHeader, serializeDNSHeader) where
+module Protocol.Header(DNSResCode(..), DNSHeader(..), defaultHeader, word8ToResCode, resCodeValue,parseDNSHeader, serializeDNSHeader) where
 
 import Data.Word
 import Data.Bits
@@ -50,6 +50,9 @@ data DNSHeader = DNSHeader
   }
   deriving (Eq, Show)
 
+
+defaultHeader:: DNSHeader
+defaultHeader = DNSHeader {transactionID=42069, recursionDesired=True, truncatedMessage=False, authoritativeAnswer=False, opcode=0, response=False, rescode=NOERROR, checking=False, authed=False, z=False, recursionAvailable=False, questions=1, answers=0, authoritativeEntries=0, resourceEntries=0}
 
 parseDNSHeader:: ByteString -> StateT Int Maybe DNSHeader 
 parseDNSHeader bytes =  do

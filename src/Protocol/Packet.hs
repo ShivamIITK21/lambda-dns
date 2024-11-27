@@ -1,4 +1,4 @@
-module Protocol.Packet(DNSPacket, parseDNSPacket, serialIzeDNSPacket) where
+module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket) where
 
 import Data.ByteString as BS
 import Control.Monad.State
