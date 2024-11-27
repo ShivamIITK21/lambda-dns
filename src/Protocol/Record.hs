@@ -1,4 +1,4 @@
-module Protocol.Record(DNSRecord, parseDNSRecordList, serializeDNSRecordList) where
+module Protocol.Record(DNSRecord(..), parseDNSRecordList, serializeDNSRecordList) where
 
 import Protocol.Question
 import Data.Word

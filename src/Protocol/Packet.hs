@@ -1,10 +1,11 @@
-module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket) where
+module Protocol.Packet(DNSPacket(..), parseDNSPacket, serialIzeDNSPacket, checkNameserver) where
 
 import Data.ByteString as BS
 import Control.Monad.State
 import Protocol.Header
 import Protocol.Question
 import Protocol.Record
+import Net.IPv4 as IP4
 import Debug.Trace(trace)
 
 data DNSPacket = DNSPacket{header::DNSHeader, 
@@ -37,6 +38,9 @@ serialIzeDNSPacket packet = do
                                 return (BS.concat [header_s, question_s, answer_s, auth_s, res_s])
                             where header_s = serializeDNSHeader (header packet)
 
-
-
-
+checkNameserver::DNSPacket -> String -> Maybe IP4.IPv4
+checkNameserver packet nsdom = 
+    let ips = [ addr | R_A dom addr _ <- resource_list packet, dom == nsdom]
+    in case ips of
+        [] -> Nothing
+        _ -> Just (Prelude.head ips)
