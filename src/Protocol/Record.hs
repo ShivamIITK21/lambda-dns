@@ -28,7 +28,7 @@ parseDNSRecord:: BS.ByteString -> StateT Int Maybe DNSRecord
 parseDNSRecord bytes = do
                         _domain <- readQName bytes
                         qtype_num <- read16bit bytes
-                        let _qtype = (trace ("record" ++ show qtype_num) (wordToQueryType qtype_num))
+                        let _qtype = wordToQueryType qtype_num
                         _class <- read16bit bytes -- useless, but naming it so it's obvious
                         _ttl <- read32bit bytes
                         len <- read16bit bytes

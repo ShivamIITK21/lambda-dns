@@ -1,4 +1,4 @@
-module Net.Resolver(lookupQName) where
+module Net.Resolver(lookupDomain) where
 
 import Protocol.Question (QueryType(..), DNSQuestion(..))
 import Protocol.Header
@@ -45,31 +45,51 @@ lookupQName qname_ qtype_ ip = let question = DNSQuestion qname_ qtype_
                                    sendDNSPacket packet ip
 
 
---god_ip = IP4.any
+godIp :: IP4.IPv4
+godIp = fromOctets 198 97 190 53
 
 lookupDomain:: String -> QueryType -> IP4.IPv4 -> IO(Maybe DNSPacket)
-lookupDomain domain qtype ip = 
-    do
-        maybe_response <- lookupQName domain qtype ip -- a maybe dnspacket    
-        no_further_action <- (case maybe_response of
-                                (Just response) -> 
-                                    if (((not.null) (answer_list response) 
-                                            && ((rescode.header) response) == NOERROR)
-                                        || ((rescode.header) response) == NXDOMAIN) 
-                                    then (return True)
-                                    else (return False)
-                                (Nothing) -> (return True))
-        if no_further_action then
-            do
-                return maybe_response
-        else do
-                maybe_ip:: <- (case maybe_response of
-                                (Just response) -> getAuthorityIPs response ip
-                                Nothing -> Nothing)::(IO(Maybe (IPv4)))
-                return (case maybe_ip of 
-                    (Nothing) -> (return Nothing)
-                    (Just new_ip) -> (lookupDomain domain qtype new_ip))
-    
+lookupDomain domain qtype ip = do
+                                    maybe_response <- lookupQName domain qtype ip 
+                                    Prelude.print maybe_response
+                                    case maybe_response of
+                                        Nothing -> return Nothing
+                                        Just response -> if (not (null (answer_list response)) && (rescode.header)response == NOERROR) then
+                                                            return (Just response)
+                                                         else if ((rescode.header) response == NXDOMAIN) then
+                                                            return (Just response)
+                                                         else do
+                                                            maybe_authority_ip <- getAuthorityIPs response godIp 
+                                                            case maybe_authority_ip of
+                                                                Nothing -> return Nothing
+                                                                Just authority_ip -> do
+                                                                                        recursvie <- lookupDomain domain qtype authority_ip
+                                                                                        return recursvie
+
+                                                                
+
+--     do
+--
+--         maybe_response <- lookupQName domain qtype ip -- a maybe dnspacket    
+--         no_further_action <- (case maybe_response of
+--                                 (Just response) -> 
+--                                     if (((not.null) (answer_list response) 
+--                                             && ((rescode.header) response) == NOERROR)
+--                                         || ((rescode.header) response) == NXDOMAIN) 
+--                                     then (return True)
+--                                     else (return False)
+--                                 (Nothing) -> (return True))
+--         if no_further_action then
+--             do
+--                 return maybe_response
+--         else do
+--                 maybe_ip:: <- (case maybe_response of
+--                                 (Just response) -> getAuthorityIPs response ip
+--                                 Nothing -> Nothing)::(IO(Maybe (IPv4)))
+--                 return (case maybe_ip of 
+--                     (Nothing) -> (return Nothing)
+--                     (Just new_ip) -> (lookupDomain domain qtype new_ip))
+--     
         
             
     
