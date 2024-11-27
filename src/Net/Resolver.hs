@@ -61,7 +61,7 @@ godIp = fromOctets 198 97 190 53
 lookupDomain:: String -> QueryType -> IP4.IPv4 -> IO(Maybe DNSPacket)
 lookupDomain _domain _qtype ip = do
                                     Prelude.print("\n\nlooking up " ++ _domain ++ " with IP " ++ show(ip) ++ "...\n\n")
-                                    threadDelay 500000
+                                    threadDelay 100000
                                     maybe_response <- lookupQName _domain _qtype ip 
                                     Prelude.print maybe_response
                                     case maybe_response of
@@ -78,7 +78,31 @@ lookupDomain _domain _qtype ip = do
                                                             new_lookup <- lookupDomain (canonical new_record) _qtype ip 
                                                             case new_lookup of
                                                                 Nothing -> return Nothing
-                                                                Just new_response -> return (Just (DNSPacket {header = (header response), question_list = (question_list response), answer_list = (answer_list response) ++ (answer_list new_response), authorities_list = (authorities_list response), resource_list = (resource_list response)}))
+                                                                Just new_response ->    let 
+                                                                    alist = (answer_list response) ++ (answer_list new_response)
+                                                                                        in return (Just (DNSPacket {
+                                                                    header = DNSHeader{
+                                                                        transactionID = (transactionID.header) response,
+                                                                        recursionDesired = True,
+                                                                        truncatedMessage = False,
+                                                                        authoritativeAnswer = False,
+                                                                        opcode = 0,
+                                                                        response = True,
+                                                                        rescode = NOERROR,
+                                                                        checking = False,
+                                                                        authed = False,
+                                                                        z = False,
+                                                                        recursionAvailable = False,
+                                                                        questions = ((questions.header) response),
+                                                                        answers = fromIntegral(Prelude.length (alist)),
+                                                                        authoritativeEntries = ((authoritativeEntries.header) response),
+                                                                        resourceEntries = ((resourceEntries.header) response)
+                                                                    },
+                                                                    question_list = (question_list response),
+                                                                    answer_list = alist, 
+                                                                    authorities_list = (authorities_list response),
+                                                                    resource_list = (resource_list response)
+                                                                }))
                                                           else return Nothing
                                                          else do
                                                             maybe_authority_ip <- getAuthorityIPs response godIp 

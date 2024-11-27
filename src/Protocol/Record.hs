@@ -107,7 +107,7 @@ serializeDNSRecord (R_CNAME _dom _cdom _ttl) = do
                                             let len_s = word16ToBS (fromIntegral(BS.length canonical))
                                             return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, canonical])
                                            where 
-                                                 qtype_s = word16ToBS (queryTypeWord NS)
+                                                 qtype_s = word16ToBS (queryTypeWord CNAME)
                                                  class_s = word16ToBS 1
                                                  ttl_s = word32ToBS _ttl
 
@@ -117,7 +117,7 @@ serializeDNSRecord (R_MX _dom _pref _exch _ttl) = do
                                             let len_s = word16ToBS (fromInteger((toInteger(BS.length exchange) + 2)))
                                             return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, pref, exchange])
                                            where 
-                                                 qtype_s = word16ToBS (queryTypeWord NS)
+                                                 qtype_s = word16ToBS (queryTypeWord MX)
                                                  class_s = word16ToBS 1
                                                  pref = word16ToBS _pref
                                                  ttl_s = word32ToBS _ttl
@@ -126,7 +126,7 @@ serializeDNSRecord (R_AAAA _dom _addr _ttl) = do
                                             qname_s <- serializeQName _dom
                                             return (BS.concat [qname_s, qtype_s, class_s, ttl_s, len_s, w32_0_s, w32_1_s, w32_2_s, w32_3_s])
                                            where 
-                                                 qtype_s = word16ToBS (queryTypeWord A)
+                                                 qtype_s = word16ToBS (queryTypeWord AAAA)
                                                  class_s = word16ToBS 1
                                                  ttl_s = word32ToBS _ttl
                                                  len_s = word16ToBS 16
