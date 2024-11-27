@@ -27,6 +27,7 @@ library
   exposed-modules:
       Data.Helpers
       Data.MonadicByteString
+      Filterlist
       Lib
       Net.Listener
       Net.Resolver
@@ -45,6 +46,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , ip
     , mtl
     , network
@@ -63,6 +65,7 @@ executable lambda-dns
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , ip
     , lambda-dns
     , mtl
@@ -83,6 +86,7 @@ test-suite lambda-dns-test
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , ip
     , lambda-dns
     , mtl

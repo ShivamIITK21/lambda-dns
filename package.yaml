@@ -26,6 +26,7 @@ dependencies:
 - ip
 - split
 - network
+- containers
 
 ghc-options:
 - -Wall
